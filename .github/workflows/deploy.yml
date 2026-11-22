@@ -54,7 +54,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: Production
-      url: ${{ vars.AWS_AMPLIFY_URL || 'https://main.d1234abcd.amplifyapp.com' }}
+      url: ${{ vars.AWS_AMPLIFY_URL || 'https://main.d3ju1mpjuhkqin.amplifyapp.com/' }}
     steps:
       - name: Announce Deployment Synchronization
         run: |
