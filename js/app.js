@@ -80,11 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
   async function bootApp(user) {
     hideLoginScreen();
 
-    // User Avatar & Name
+    // User Avatar & Info
     const avatar = document.getElementById('user-avatar');
     const userName = document.getElementById('user-name');
-    if (avatar)   avatar.src         = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'Dev')}&background=2ea043&color=fff`;
-    if (userName) userName.textContent = user.displayName || user.email;
+    const userEmail = document.getElementById('user-email');
+    const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'developer');
+    if (avatar) avatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2ea043&color=fff`;
+    if (userName) userName.textContent = displayName;
+    if (userEmail) userEmail.textContent = user.email || (user.isGuest ? 'guest@planee.local' : 'developer@planee.local');
 
     // Loading overlay
     const overlay  = document.getElementById('loading-overlay');
@@ -123,6 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
    * Sign Out
    * ====================================================================== */
   document.getElementById('signout-btn').addEventListener('click', async () => {
+    document.getElementById('user-dropdown')?.classList.remove('open');
+    document.getElementById('user-avatar-btn')?.classList.remove('active');
+    document.getElementById('user-avatar-btn')?.setAttribute('aria-expanded', 'false');
     localStorage.removeItem('planee_guest_active');
     window.store._unsubscribeTasks?.();
     window.store._unsubscribeCats?.();
@@ -476,16 +482,80 @@ document.addEventListener('DOMContentLoaded', () => {
     // Theme Toggle Button
     document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
 
-    // Mobile Sidebar
-    document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
-      document.getElementById('app-sidebar').classList.toggle('open');
-    });
+    // User Profile Dropdown Toggle
+    const userAvatarBtn = document.getElementById('user-avatar-btn');
+    const userDropdown = document.getElementById('user-dropdown');
+    if (userAvatarBtn && userDropdown) {
+      userAvatarBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = userDropdown.classList.toggle('open');
+        userAvatarBtn.classList.toggle('active', isOpen);
+        userAvatarBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+
+      // Prevent clicks inside the dropdown from closing it prematurely
+      userDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      // Close dropdown when clicking anywhere outside
+      document.addEventListener('click', () => {
+        userDropdown.classList.remove('open');
+        userAvatarBtn.classList.remove('active');
+        userAvatarBtn.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    // Sidebar Toggle (Desktop Collapse & Mobile Drawer)
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.getElementById('app-sidebar');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+    if (sidebarToggleBtn && sidebar) {
+      sidebarToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isMobile = window.innerWidth <= 900;
+        if (isMobile) {
+          const isOpen = sidebar.classList.toggle('open');
+          if (sidebarBackdrop) sidebarBackdrop.classList.toggle('active', isOpen);
+        } else {
+          const isCollapsed = sidebar.classList.toggle('collapsed');
+          sidebarToggleBtn.classList.toggle('active', isCollapsed);
+        }
+      });
+
+      if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', () => {
+          sidebar.classList.remove('open');
+          sidebarBackdrop.classList.remove('active');
+        });
+      }
+
+      // Close mobile drawer when clicking a navigation link or category
+      sidebar.addEventListener('click', (e) => {
+        if (window.innerWidth <= 900 && (e.target.closest('.nav-item') || e.target.closest('.category-item'))) {
+          sidebar.classList.remove('open');
+          if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+        }
+      });
+    }
 
     // Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
       const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
       if (e.key === '/' && !inInput)                   { e.preventDefault(); document.getElementById('global-search').focus(); }
-      if (e.key === 'Escape')                           { closeTaskModal(); document.getElementById('category-modal').style.display = 'none'; document.getElementById('data-modal').style.display = 'none'; }
+      if (e.key === 'Escape') {
+        closeTaskModal();
+        document.getElementById('category-modal').style.display = 'none';
+        document.getElementById('data-modal').style.display = 'none';
+        userDropdown?.classList.remove('open');
+        userAvatarBtn?.classList.remove('active');
+        userAvatarBtn?.setAttribute('aria-expanded', 'false');
+        if (sidebar && window.innerWidth <= 900) {
+          sidebar.classList.remove('open');
+          sidebarBackdrop?.classList.remove('active');
+        }
+      }
       if ((e.key === 'n' || e.key === 'N') && !inInput) { e.preventDefault(); openTaskModal(null); }
     });
   }

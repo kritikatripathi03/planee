@@ -1,13 +1,22 @@
 {
   "name": "planee",
-  "version": "3.1.0",
-  "description": "Gamified RPG Task Planner powered by Firebase Firestore — tasks, due dates, Office/Personal categories, XP & Level-up system, Kanban board, and cloud sync.",
+  "version": "3.2.0",
+  "description": "Developer Terminal Task Planner powered by Firebase Firestore — tasks, due dates, Office/Personal categories, Kanban board, and cloud sync.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "build": "echo 'Static build ready'",
     "serve": "python3 -m http.server 8080"
   },
-  "keywords": ["todo", "tasks", "firebase", "firestore", "gamification", "rpg", "productivity"],
+  "keywords": [
+    "todo",
+    "tasks",
+    "firebase",
+    "firestore",
+    "terminal",
+    "developer",
+    "productivity"
+  ],
   "author": "",
   "license": "MIT"
 }
