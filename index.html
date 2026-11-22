@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planee — Developer Task &amp; To-Do Terminal</title>
+  <meta name="description" content="Planee is a clean developer/terminal-themed task planner with due dates, office/personal categories, and instant cloud sync.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <!-- =====================================================================
+       LOGIN SCREEN (Terminal Authenticator Window)
+       ===================================================================== -->
+  <div id="login-screen" class="login-screen" style="display:none;">
+    <div class="login-card">
+      <div class="login-window-header">
+        <div class="window-controls">
+          <span class="window-dot dot-close"></span>
+          <span class="window-dot dot-min"></span>
+          <span class="window-dot dot-max"></span>
+        </div>
+        <span class="login-window-title">bash — 80x24</span>
+        <div style="width: 36px;"></div>
+      </div>
+
+      <div class="login-body">
+        <div class="login-prompt-icon">&gt;_</div>
+        <h1 class="login-title">planee.sh</h1>
+        <p class="login-subtitle">Developer Task &amp; Project Workspace. Organize Office &amp; Personal tasks with due dates, priorities, and subtasks.</p>
+
+        <div id="file-protocol-warning" class="protocol-warning" style="display:none;">
+          <span style="font-size:14px;">ℹ️</span>
+          <span>Running via <code>file://</code>. For Google Sign-In, start local server: <code>npm start</code> &rarr; <b>http://localhost:8080</b>. Or click <b>Guest / Local Dev</b> below for instant access!</span>
+        </div>
+
+        <button id="google-signin-btn" class="google-signin-btn">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="google-icon" alt="Google">
+          <span>Authenticate with Google</span>
+        </button>
+
+        <div class="login-divider">
+          <span>or</span>
+        </div>
+
+        <button id="guest-signin-btn" class="guest-signin-btn">
+          <span>$ ./launch-guest-session.sh</span>
+        </button>
+
+        <p id="login-error" class="login-error"></p>
+
+        <div class="login-features">
+          <div class="login-feature"><span>📁</span><span>Office &amp; Personal categories with custom tags</span></div>
+          <div class="login-feature"><span>📅</span><span>Due dates, countdowns, and overdue alerts</span></div>
+          <div class="login-feature"><span>🌗</span><span>Developer Dark &amp; Light themes</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MAIN APP SCREEN (Terminal & Workspace)
+       ===================================================================== -->
+  <div id="app-screen" style="display:none; height:100vh; flex-direction:column;">
+    <div class="app-container">
+      <!-- Top Navigation Bar (Terminal Header) -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="window-controls" title="macOS / Terminal controls">
+            <span class="window-dot dot-close"></span>
+            <span class="window-dot dot-min"></span>
+            <span class="window-dot dot-max"></span>
+          </div>
+
+          <button id="sidebar-toggle-btn" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle Navigation Sidebar">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+
+          <div class="logo">
+            <span class="logo-prompt">&gt;_</span>
+            <span class="logo-title">planee</span>
+            <span class="logo-badge">cli</span>
+          </div>
+
+          <div class="header-path">
+            <span>~/workspace</span>
+            <span class="git-tag">git:(main)</span>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <div class="search-box">
+            <span class="search-prompt">$</span>
+            <input type="text" id="global-search" placeholder="grep tasks, categories, tags... (Press /)" autocomplete="off">
+            <kbd class="search-kbd">/</kbd>
+            <button id="clear-search-btn" class="clear-search-btn" title="Clear search" aria-label="Clear search" style="display: none;">&times;</button>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Sync Status Indicator -->
+          <div id="sync-indicator" class="sync-indicator sync-idle" title="Storage sync status">
+            <svg class="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            <span id="sync-label">SYNCED</span>
+          </div>
+
+          <button id="load-demo-btn" class="btn btn-outline btn-sm btn-mono" title="Seed realistic Office &amp; Personal tasks">
+            <span>seed_data()</span>
+          </button>
+
+          <button id="data-manager-btn" class="icon-btn" title="Export / Manage JSON Data" aria-label="Export data">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
+
+          <!-- Theme Toggle (Dark / Light) -->
+          <button id="theme-toggle-btn" class="theme-pill-btn" title="Toggle Dark / Light Theme" aria-label="Toggle theme">
+            <span id="theme-label-icon">☀️</span>
+            <span id="theme-label-text">LIGHT</span>
+          </button>
+
+          <button id="new-task-btn" class="btn btn-primary btn-sm btn-mono" title="Create a new task (Hotkey: N)">
+            <span>+ new_task</span>
+          </button>
+
+          <!-- User Avatar & Dropdown -->
+          <div class="user-menu">
+            <img id="user-avatar" class="user-avatar" src="" alt="User avatar">
+            <div class="user-dropdown">
+              <span id="user-name" class="user-dropdown-name"></span>
+              <button id="signout-btn" class="btn btn-ghost btn-sm user-signout-btn">exit (sign out)</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <div class="app-body">
+        <!-- Sidebar -->
+        <aside id="app-sidebar" class="app-sidebar">
+          <div class="sidebar-section">
+            <div class="sidebar-title">NAVIGATION</div>
+            <nav class="sidebar-nav">
+              <button class="nav-item active" data-view="all">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+                <span class="nav-label">all_tasks</span>
+                <span class="nav-count" id="count-all">0</span>
+              </button>
+              <button class="nav-item" data-view="today">
+                <span class="nav-icon text-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                <span class="nav-label">due_today</span>
+                <span class="nav-count badge-amber" id="count-today">0</span>
+              </button>
+              <button class="nav-item" data-view="upcoming">
+                <span class="nav-icon text-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                <span class="nav-label">upcoming</span>
+                <span class="nav-count" id="count-upcoming">0</span>
+              </button>
+              <button class="nav-item" data-view="overdue">
+                <span class="nav-icon text-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+                <span class="nav-label">overdue</span>
+                <span class="nav-count badge-red" id="count-overdue">0</span>
+              </button>
+              <button class="nav-item" data-view="completed">
+                <span class="nav-icon text-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+                <span class="nav-label">completed</span>
+                <span class="nav-count" id="count-completed">0</span>
+              </button>
+            </nav>
+          </div>
+
+          <!-- Categories -->
+          <div class="sidebar-section">
+            <div class="sidebar-section-header">
+              <span class="sidebar-title">CATEGORIES</span>
+              <button id="add-category-btn" class="icon-btn-xs" title="Add New Category" aria-label="Add category">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+            <div id="category-list" class="category-list"></div>
+          </div>
+
+          <!-- Developer Productivity Summary -->
+          <div class="sidebar-section sidebar-widget-container">
+            <div class="productivity-card">
+              <div class="widget-header">
+                <span class="widget-title">Sprint Status</span>
+                <span class="widget-pct" id="widget-progress-pct">0%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="widget-progress-fill" style="width:0%;"></div>
+              </div>
+              <div class="widget-stats">
+                <div class="stat-col"><span class="stat-num text-success" id="widget-stat-done">0</span><span class="stat-desc">Closed</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-col"><span class="stat-num text-primary" id="widget-stat-pending">0</span><span class="stat-desc">Open</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat-col"><span class="stat-num text-danger" id="widget-stat-overdue">0</span><span class="stat-desc">Late</span></div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+          <!-- Loading Overlay -->
+          <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">initializing session...</p>
+          </div>
+
+          <div id="main-content" style="display:none; flex-direction:column; flex:1;">
+            <!-- View Header -->
+            <div class="workspace-header">
+              <div class="workspace-header-title-row">
+                <div class="workspace-title-group">
+                  <h1 class="view-title">
+                    <span class="view-title-prompt">&gt;</span>
+                    <span id="current-view-title">all_tasks</span>
+                  </h1>
+                  <p id="current-view-subtitle" class="view-subtitle">Listing all active and scheduled task records</p>
+                </div>
+
+                <div class="view-switcher" role="tablist">
+                  <button class="view-switch-btn active" data-display-mode="list" role="tab" aria-selected="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    <span>list</span>
+                  </button>
+                  <button class="view-switch-btn" data-display-mode="kanban" role="tab" aria-selected="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="16" rx="1"/></svg>
+                    <span>board</span>
+                  </button>
+                  <button class="view-switch-btn" data-display-mode="agenda" role="tab" aria-selected="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                    <span>timeline</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Add Input Bar -->
+              <div class="quick-add-container">
+                <form id="quick-add-form" class="quick-add-form">
+                  <div class="quick-add-main">
+                    <span class="quick-add-prompt">+</span>
+                    <input type="text" id="quick-add-input" placeholder="Create task (e.g. Deploy API migration, Buy grocery supplies)..." autocomplete="off" required>
+                  </div>
+                  <div class="quick-add-options">
+                    <div class="quick-select-wrapper" title="Category">
+                      <select id="quick-add-category" class="quick-select"></select>
+                    </div>
+                    <div class="quick-select-wrapper" title="Priority">
+                      <select id="quick-add-priority" class="quick-select">
+                        <option value="medium">⚡ Medium</option>
+                        <option value="high">🔥 High</option>
+                        <option value="urgent">🚨 Urgent</option>
+                        <option value="low">🌱 Low</option>
+                      </select>
+                    </div>
+                    <div class="quick-date-wrapper" title="Due Date">
+                      <input type="date" id="quick-add-date" class="quick-date-input">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm btn-mono quick-add-submit">commit</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Filter / Sort Bar -->
+              <div class="controls-bar">
+                <div class="filter-pills" id="status-filters">
+                  <button class="pill active" data-status="all">all</button>
+                  <button class="pill" data-status="active">open</button>
+                  <button class="pill" data-status="completed">closed</button>
+                </div>
+                <div class="filter-dropdown-group">
+                  <label for="priority-filter-select" class="filter-label">priority:</label>
+                  <select id="priority-filter-select" class="control-select">
+                    <option value="all">all_priorities</option>
+                    <option value="urgent">🚨 urgent</option>
+                    <option value="high">🔥 high</option>
+                    <option value="medium">⚡ medium</option>
+                    <option value="low">🌱 low</option>
+                  </select>
+                </div>
+                <div class="filter-dropdown-group">
+                  <label for="sort-select" class="filter-label">sort:</label>
+                  <select id="sort-select" class="control-select">
+                    <option value="dueDateAsc">due_date (earliest)</option>
+                    <option value="dueDateDesc">due_date (latest)</option>
+                    <option value="priorityDesc">priority (highest)</option>
+                    <option value="createdDesc">created_at (newest)</option>
+                    <option value="titleAsc">name (A-Z)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Task Content Area -->
+            <div class="workspace-content">
+              <div id="view-list" class="tasks-view active">
+                <div id="task-groups-container" class="task-groups-container"></div>
+              </div>
+              <div id="view-kanban" class="tasks-view" style="display:none;">
+                <div class="kanban-board">
+                  <div class="kanban-col" data-col="todo">
+                    <div class="kanban-header"><div class="kanban-title-row"><span class="status-dot dot-gray"></span><span class="kanban-col-title">to_do</span><span class="kanban-count" id="kanban-count-todo">0</span></div></div>
+                    <div class="kanban-cards" id="kanban-cards-todo"></div>
+                  </div>
+                  <div class="kanban-col" data-col="in_progress">
+                    <div class="kanban-header"><div class="kanban-title-row"><span class="status-dot dot-blue"></span><span class="kanban-col-title">in_progress</span><span class="kanban-count" id="kanban-count-in_progress">0</span></div></div>
+                    <div class="kanban-cards" id="kanban-cards-in_progress"></div>
+                  </div>
+                  <div class="kanban-col" data-col="completed">
+                    <div class="kanban-header"><div class="kanban-title-row"><span class="status-dot dot-green"></span><span class="kanban-col-title">completed</span><span class="kanban-count" id="kanban-count-completed">0</span></div></div>
+                    <div class="kanban-cards" id="kanban-cards-completed"></div>
+                  </div>
+                </div>
+              </div>
+              <div id="view-agenda" class="tasks-view" style="display:none;">
+                <div id="agenda-container" class="agenda-container"></div>
+              </div>
+
+              <!-- Empty State -->
+              <div id="empty-state" class="empty-state" style="display:none;">
+                <div class="empty-illustration">
+                  <svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                    <rect x="15" y="15" width="70" height="70" rx="8" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/>
+                    <path d="M35 50L45 60L65 40" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <h3 class="empty-title">0 tasks found</h3>
+                <p class="empty-description" id="empty-description-text">No task records matching the active filter criteria.</p>
+                <div class="empty-actions">
+                  <button id="empty-add-btn" class="btn btn-primary btn-sm btn-mono">+ create_task</button>
+                  <button id="empty-clear-filter-btn" class="btn btn-outline btn-sm btn-mono">reset_filters()</button>
+                </div>
+              </div>
+            </div>
+          </div><!-- /main-content -->
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Detail / Edit Modal -->
+  <div id="task-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-task-title" class="modal-title">task_details</h2>
+        <button id="close-task-modal-btn" class="icon-btn-close">&times;</button>
+      </div>
+      <form id="task-form" class="modal-form">
+        <input type="hidden" id="task-form-id">
+        <div class="form-group">
+          <label for="task-form-title" class="form-label">title <span class="required">*</span></label>
+          <input type="text" id="task-form-title" class="form-control" placeholder="e.g. Review Q3 architectural RFC" required>
+        </div>
+        <div class="form-row-grid">
+          <div class="form-group">
+            <label for="task-form-category" class="form-label">category <span class="required">*</span></label>
+            <select id="task-form-category" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label for="task-form-priority" class="form-label">priority</label>
+            <select id="task-form-priority" class="form-control">
+              <option value="low">🌱 Low Priority</option>
+              <option value="medium">⚡ Medium Priority</option>
+              <option value="high">🔥 High Priority</option>
+              <option value="urgent">🚨 Urgent Priority</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-grid">
+          <div class="form-group">
+            <label for="task-form-due-date" class="form-label">due_date <span class="required">*</span></label>
+            <input type="date" id="task-form-due-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="task-form-due-time" class="form-label">due_time (optional)</label>
+            <input type="time" id="task-form-due-time" class="form-control">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="task-form-description" class="form-label">description &amp; notes</label>
+          <textarea id="task-form-description" class="form-control" rows="3" placeholder="Context, specs, PR links, or checklist notes..."></textarea>
+        </div>
+        <div class="form-group">
+          <div class="subtask-header">
+            <label class="form-label">subtasks (<span id="subtask-completion-count">0/0</span>)</label>
+          </div>
+          <div id="subtask-list" class="subtask-list"></div>
+          <div class="subtask-input-row">
+            <input type="text" id="new-subtask-input" class="form-control" placeholder="Add checklist item...">
+            <button type="button" id="add-subtask-btn" class="btn btn-secondary btn-sm btn-mono">add</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="task-form-tags" class="form-label">tags (comma-separated)</label>
+          <input type="text" id="task-form-tags" class="form-control" placeholder="backend, infra, finance, personal">
+        </div>
+        <div class="modal-footer">
+          <div class="footer-left">
+            <button type="button" id="delete-task-btn" class="btn btn-danger btn-sm btn-mono" style="display:none;">
+              <span>delete_record()</span>
+            </button>
+          </div>
+          <div class="footer-right">
+            <button type="button" id="cancel-task-modal-btn" class="btn btn-ghost btn-mono">cancel</button>
+            <button type="submit" id="save-task-btn" class="btn btn-primary btn-mono">save_record()</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Category Modal -->
+  <div id="category-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">new_category</h2>
+        <button id="close-category-modal-btn" class="icon-btn-close">&times;</button>
+      </div>
+      <form id="category-form" class="modal-form">
+        <div class="form-group">
+          <label for="cat-name-input" class="form-label">category_name <span class="required">*</span></label>
+          <input type="text" id="cat-name-input" class="form-control" placeholder="e.g. Side Project, DevOps, Fitness" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">icon</label>
+          <div class="emoji-picker-row" id="emoji-picker">
+            <button type="button" class="emoji-btn active" data-emoji="📁">📁</button>
+            <button type="button" class="emoji-btn" data-emoji="💼">💼</button>
+            <button type="button" class="emoji-btn" data-emoji="🏠">🏠</button>
+            <button type="button" class="emoji-btn" data-emoji="🚀">🚀</button>
+            <button type="button" class="emoji-btn" data-emoji="🎯">🎯</button>
+            <button type="button" class="emoji-btn" data-emoji="💡">💡</button>
+            <button type="button" class="emoji-btn" data-emoji="🔧">🔧</button>
+            <button type="button" class="emoji-btn" data-emoji="💰">💰</button>
+            <button type="button" class="emoji-btn" data-emoji="📚">📚</button>
+            <button type="button" class="emoji-btn" data-emoji="🏃">🏃</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">color_accent</label>
+          <div class="color-picker-row" id="color-picker">
+            <button type="button" class="color-swatch active" data-color="#2ea043" style="background:#2ea043;"></button>
+            <button type="button" class="color-swatch" data-color="#58a6ff" style="background:#58a6ff;"></button>
+            <button type="button" class="color-swatch" data-color="#d29922" style="background:#d29922;"></button>
+            <button type="button" class="color-swatch" data-color="#f85149" style="background:#f85149;"></button>
+            <button type="button" class="color-swatch" data-color="#38bdf8" style="background:#38bdf8;"></button>
+            <button type="button" class="color-swatch" data-color="#10b981" style="background:#10b981;"></button>
+            <button type="button" class="color-swatch" data-color="#f97316" style="background:#f97316;"></button>
+            <button type="button" class="color-swatch" data-color="#8b949e" style="background:#8b949e;"></button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="cancel-category-btn" class="btn btn-ghost btn-mono">cancel</button>
+          <button type="submit" class="btn btn-primary btn-mono">create_category()</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Data / Export Modal -->
+  <div id="data-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">data_export</h2>
+        <button id="close-data-modal-btn" class="icon-btn-close">&times;</button>
+      </div>
+      <div class="modal-body data-modal-body">
+        <div class="data-action-block">
+          <h4>Export Task Database</h4>
+          <p>Download a JSON snapshot of all active tasks, subtasks, and categories.</p>
+          <button id="export-json-btn" class="btn btn-secondary btn-sm btn-mono">export_json()</button>
+        </div>
+        <div class="data-action-block danger-block">
+          <h4>Prune Closed Tasks</h4>
+          <p>Permanently remove completed task records to keep workspace index minimal.</p>
+          <button id="clear-completed-btn" class="btn btn-outline-danger btn-sm btn-mono">prune_completed()</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- App Scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
