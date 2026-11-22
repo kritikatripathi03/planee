@@ -94,6 +94,11 @@
         </div>
 
         <div class="header-center">
+          <div class="header-telemetry" title="System Status &amp; Clock">
+            <span class="telemetry-led">●</span>
+            <span id="header-clock" class="telemetry-clock">00:00:00 UTC</span>
+            <span class="telemetry-badge">SYS:OK</span>
+          </div>
           <div class="search-box">
             <span class="search-prompt">$</span>
             <input type="text" id="global-search" placeholder="grep tasks, categories, tags... (Press /)" autocomplete="off">
@@ -264,6 +269,42 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
                     <span>timeline</span>
                   </button>
+                </div>
+              </div>
+
+              <!-- Terminal Telemetry Stats Grid -->
+              <div class="terminal-stats-grid">
+                <div class="terminal-stat-card">
+                  <div class="stat-card-label">TOTAL_OBJECTIVES</div>
+                  <div class="stat-card-val-row">
+                    <span class="stat-card-val" id="telemetry-total">0</span>
+                    <span class="stat-card-tag tag-blue">[TRACKED]</span>
+                  </div>
+                  <div class="stat-card-sub">All active &amp; scheduled items</div>
+                </div>
+                <div class="terminal-stat-card">
+                  <div class="stat-card-label">IN_PIPELINE</div>
+                  <div class="stat-card-val-row">
+                    <span class="stat-card-val text-green" id="telemetry-active">0</span>
+                    <span class="stat-card-tag tag-green">● RUNNING</span>
+                  </div>
+                  <div class="stat-card-sub">Tasks pending execution</div>
+                </div>
+                <div class="terminal-stat-card">
+                  <div class="stat-card-label">DUE_TODAY</div>
+                  <div class="stat-card-val-row">
+                    <span class="stat-card-val text-amber" id="telemetry-today">0</span>
+                    <span class="stat-card-tag tag-amber">! SCHEDULED</span>
+                  </div>
+                  <div class="stat-card-sub">Immediate cycle deadlines</div>
+                </div>
+                <div class="terminal-stat-card">
+                  <div class="stat-card-label">SUCCESS_RATE</div>
+                  <div class="stat-card-val-row">
+                    <span class="stat-card-val text-cyan" id="telemetry-rate">0%</span>
+                    <span class="stat-card-tag tag-cyan" id="telemetry-ascii-rate">[░░░░░░░░░░]</span>
+                  </div>
+                  <div class="stat-card-sub">Closed vs total ratio</div>
                 </div>
               </div>
 

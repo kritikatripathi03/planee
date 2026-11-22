@@ -119,7 +119,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('quick-add-date').value = window.store.getDateOffset(0);
     setupTheme();
     setupEventListeners();
+    startLiveTelemetryClock();
     refreshView();
+  }
+
+  function startLiveTelemetryClock() {
+    function updateClock() {
+      const clockEl = document.getElementById('header-clock');
+      if (!clockEl) return;
+      const now = new Date();
+      const h = String(now.getUTCHours()).padStart(2, '0');
+      const m = String(now.getUTCMinutes()).padStart(2, '0');
+      const s = String(now.getUTCSeconds()).padStart(2, '0');
+      clockEl.textContent = `${h}:${m}:${s} UTC`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
   }
 
   /* =========================================================================

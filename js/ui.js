@@ -128,6 +128,7 @@ class PlaneeUI {
         <!-- Task Info -->
         <div class="task-main-info" title="Click to view details and edit">
           <div class="task-title-line">
+            <span class="task-hash-id">#${this.escapeHTML(String(task.id).slice(-4).toUpperCase())}</span>
             <span class="task-title">${this.escapeHTML(task.title)}</span>
             <span class="priority-tag ${pri.class}">${pri.label}</span>
           </div>
@@ -385,6 +386,22 @@ class PlaneeUI {
     if (countUpcoming) countUpcoming.textContent = stats.upcoming;
     if (countOverdue) countOverdue.textContent = stats.overdue;
     if (countCompleted) countCompleted.textContent = stats.completed;
+
+    // Terminal Telemetry Grid
+    const telTotal = document.getElementById('telemetry-total');
+    const telActive = document.getElementById('telemetry-active');
+    const telToday = document.getElementById('telemetry-today');
+    const telRate = document.getElementById('telemetry-rate');
+    const telAscii = document.getElementById('telemetry-ascii-rate');
+
+    if (telTotal) telTotal.textContent = stats.total;
+    if (telActive) telActive.textContent = stats.active;
+    if (telToday) telToday.textContent = stats.dueToday;
+    if (telRate) telRate.textContent = `${stats.rate}%`;
+    if (telAscii) {
+      const filled = Math.min(10, Math.max(0, Math.round(stats.rate / 10)));
+      telAscii.textContent = `[${'▓'.repeat(filled)}${'░'.repeat(10 - filled)}]`;
+    }
   }
 
   // --- Toast Notifications ---
