@@ -1,5 +1,8 @@
 # 💻 Planee — Developer Terminal Task Manager
 
+[![CI/CD Pipeline](https://github.com/kritikatripathi03/planee/actions/workflows/deploy.yml/badge.svg)](https://github.com/kritikatripathi03/planee/actions/workflows/deploy.yml)
+[![Deployment Status](https://img.shields.io/badge/Deployment-AWS%20Amplify-FF9900?logo=aws-amplify&logoColor=white)](https://github.com/kritikatripathi03/planee/deployments)
+
 A clean, developer & terminal-inspired task management application with **Firestore cloud sync** and **local offline mode**. Engineered with a minimalist coding environment aesthetic featuring macOS terminal headers, monospace typography, status tags, and both **Dark** and **Light** developer themes — with **zero purple** and **no game mechanics**.
 
 ---
